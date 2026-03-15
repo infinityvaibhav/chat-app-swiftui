@@ -6,36 +6,27 @@
 //
 import SwiftUI
 
+/// A view that displays a single chat message with appropriate styling and alignment.
+///
+/// The message is styled differently based on whether it was sent by the user or received.
 struct MessageView: View {
+    /// The message to display.
     let message: Message
 
+    /// The body of the view, rendering the message text with conditional styling and alignment.
     var body: some View {
-        HStack {
-            
-            /// 1. If message is type from the user then display it in the trailing
-            /// 2. If we are receiving the message then display it in leading position
-            if message.isUser {
-                Spacer()
-                Text(message.text)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            } else {
-                Text(message.text)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .foregroundColor(.black)
-                    .cornerRadius(10)
-                Spacer()
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 4)
+        Text(message.text)
+            .padding()
+            .background(message.isUser ? Color.blue : Color.gray.opacity(0.2))
+            .foregroundColor(message.isUser ? .white : .black)
+            .cornerRadius(10)
+            .frame(maxWidth: .infinity, alignment: message.isUser ? .trailing : .leading)
+            .padding(.horizontal)
+            .padding(.vertical, 4)
     }
 }
 
-/// Added trait 'sizeThatFitsLayout' to only view how message will display
+/// A preview of the MessageView for a user-sent message.
 #Preview(traits: .sizeThatFitsLayout) {
     let message = Message(text: "Hello", isUser: true)
     MessageView(message:  message)

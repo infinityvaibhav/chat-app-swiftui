@@ -8,10 +8,15 @@
 import Foundation
 
 // MARK: - Message Model
-/// The text property is the message typed by user or received from automatic reply
-/// The isUser property is crucial for distinguishing between messages sent by the user and messages received
-struct Message: Identifiable, Hashable {
+/// A model representing a chat message in the application.
+///
+/// This struct encapsulates the content of a message, whether it was sent by the user,
+/// and provides a unique identifier for use in SwiftUI views.
+struct Message: Identifiable {
+    /// A unique identifier for the message, automatically generated as a UUID.
     let id = UUID()
+    /// The textual content of the message.
     let text: String
+    /// A boolean indicating whether the message was sent by the user (`true`) or received (`false`).
     let isUser: Bool
 }
