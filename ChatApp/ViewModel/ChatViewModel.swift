@@ -13,6 +13,7 @@ import Combine
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var currentMessageText: String = ""
+    @Published var isLoading: Bool = false
 
     private let messageUseCase: MessageUseCaseProtocol
 
@@ -20,21 +21,21 @@ class ChatViewModel: ObservableObject {
         self.messageUseCase = messageUseCase
     }
 
-    /// 1. Checks if there's any text to send.
-    /// 2. Creates a user message and adds it to the chat log.
-    /// 3. Clears the input text field.
-    /// 4.Initiates an asynchronous task to simulate a reply.
-    /// 5. Waits for the simulated reply.
-    /// 6. Creates a bot message with the reply and adds it to the chat log.
+    /// Sends the current message and simulates a reply.
+    ///
+    /// This method creates a user message, adds it to the chat, clears the input, sets loading state, and asynchronously fetches a simulated reply.
     func sendMessage() {
         guard !currentMessageText.isEmpty else { return }
         let userMessage = Message(text: currentMessageText, isUser: true)
         messages.append(userMessage)
+        let textToSend = currentMessageText
         currentMessageText = ""
+        isLoading = true
 
         Task {
             let reply = await messageUseCase.simulateReply()
             messages.append(Message(text: reply, isUser: false))
+            isLoading = false
         }
     }
 }
