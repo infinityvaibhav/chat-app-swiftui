@@ -14,12 +14,22 @@ import Foundation
 class MockMessageUseCase: MessageUseCaseProtocol {
     var simulatedReply: String = "Test Reply"
     var delay: TimeInterval = 0 // Add a delay property for testing
+    /// Optional intermediate snapshots emitted before the final reply, to mimic streaming.
+    var streamedSnapshots: [String]?
 
-    func simulateReply() async -> String {
-        if delay > 0 {
-            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+    func streamReply(to prompt: String) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+                for snapshot in streamedSnapshots ?? [] {
+                    continuation.yield(snapshot)
+                }
+                continuation.yield(simulatedReply)
+                continuation.finish()
+            }
         }
-        return simulatedReply
     }
 }
 
@@ -41,9 +51,11 @@ struct ChatViewModelTests {
         viewModel.currentMessageText = "Hello, world!"
         viewModel.sendMessage()
 
-        #expect(viewModel.messages.count == 1, "Message should be added to messages array")
+        // User message plus an empty placeholder for the streamed bot reply.
+        #expect(viewModel.messages.count == 2, "User message and bot placeholder should be added")
         #expect(viewModel.messages[0].text == "Hello, world!", "Message text should match input")
         #expect(viewModel.messages[0].isUser == true, "Message should be from user")
+        #expect(viewModel.messages[1].isUser == false, "Placeholder should be a bot message")
         #expect(viewModel.currentMessageText.isEmpty, "Input text should be cleared")
     }
 
@@ -54,21 +66,37 @@ struct ChatViewModelTests {
         #expect(viewModel.messages.isEmpty, "Empty message should not be added")
     }
 
-    @Test("SimulateReply returns the correct reply")
-    func testSimulateReply_returnsCorrectReply() async {
+    @Test("streamReply emits the final reply")
+    func testStreamReply_returnsCorrectReply() async throws {
         mockUseCase.simulatedReply = "Expected Reply"
-        let reply = await mockUseCase.simulateReply()
-        #expect(reply == "Expected Reply", "Reply should match simulatedReply")
+        var lastSnapshot: String?
+        for try await snapshot in mockUseCase.streamReply(to: "Question") {
+            lastSnapshot = snapshot
+        }
+        #expect(lastSnapshot == "Expected Reply", "Final snapshot should match simulatedReply")
     }
 
-    @Test("SimulateReply waits for the specified delay")
-    func testSimulateReply_waitsForDelay() async {
+    @Test("streamReply emits cumulative snapshots in order")
+    func testStreamReply_emitsSnapshotsInOrder() async throws {
+        mockUseCase.streamedSnapshots = ["He", "Hello"]
+        mockUseCase.simulatedReply = "Hello there"
+        var snapshots: [String] = []
+        for try await snapshot in mockUseCase.streamReply(to: "Hi") {
+            snapshots.append(snapshot)
+        }
+        #expect(snapshots == ["He", "Hello", "Hello there"], "Snapshots should arrive in order")
+    }
+
+    @Test("streamReply waits for the specified delay")
+    func testStreamReply_waitsForDelay() async throws {
         mockUseCase.simulatedReply = "Delayed Reply"
         mockUseCase.delay = 2 // Set a 2-second delay
         let startTime = CFAbsoluteTimeGetCurrent()
-        let reply = await mockUseCase.simulateReply()
-        let endTime = CFAbsoluteTimeGetCurrent()
-        let elapsedTime = endTime - startTime
+        var reply: String?
+        for try await snapshot in mockUseCase.streamReply(to: "Question") {
+            reply = snapshot
+        }
+        let elapsedTime = CFAbsoluteTimeGetCurrent() - startTime
 
         #expect(reply == "Delayed Reply", "Reply should match simulatedReply")
         #expect(elapsedTime >= 2, "Should wait for at least 2 seconds")
@@ -80,8 +108,8 @@ struct ChatViewModelTests {
         viewModel.currentMessageText = "User Question"
         viewModel.sendMessage()
         
-        // Wait for the reply
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+        // Wait for the streamed reply to complete
+        try await Task.sleep(nanoseconds: 200_000_000) // 0.2 second
         
         #expect(viewModel.messages.count == 2, "Should have user message and bot reply")
         #expect(viewModel.messages[1].text == "Bot Response", "Bot reply should match")

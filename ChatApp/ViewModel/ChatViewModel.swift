@@ -21,9 +21,11 @@ class ChatViewModel: ObservableObject {
         self.messageUseCase = messageUseCase
     }
 
-    /// Sends the current message and simulates a reply.
+    /// Sends the current message and streams the assistant's reply.
     ///
-    /// This method creates a user message, adds it to the chat, clears the input, sets loading state, and asynchronously fetches a simulated reply.
+    /// This method creates a user message, adds it to the chat, clears the input,
+    /// sets the loading state, and asynchronously streams a reply from the use case,
+    /// updating the in-progress bot message in place as content arrives.
     func sendMessage() {
         guard !currentMessageText.isEmpty else { return }
         let userMessage = Message(text: currentMessageText, isUser: true)
@@ -32,10 +34,26 @@ class ChatViewModel: ObservableObject {
         currentMessageText = ""
         isLoading = true
 
+        // Placeholder bot message that gets filled in as the stream emits snapshots.
+        let botMessage = Message(text: "", isUser: false)
+        messages.append(botMessage)
+        let botMessageID = botMessage.id
+
         Task {
-            let reply = await messageUseCase.simulateReply()
-            messages.append(Message(text: reply, isUser: false))
-            isLoading = false
+            defer { isLoading = false }
+            do {
+                for try await snapshot in messageUseCase.streamReply(to: textToSend) {
+                    updateMessage(id: botMessageID, text: snapshot)
+                }
+            } catch {
+                updateMessage(id: botMessageID, text: replies.randomElement() ?? "...")
+            }
         }
+    }
+
+    /// Replaces the text of the message with the given identifier, if it still exists.
+    private func updateMessage(id: UUID, text: String) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[index].text = text
     }
 }
