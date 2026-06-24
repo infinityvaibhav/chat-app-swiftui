@@ -4,6 +4,10 @@ This project is a basic chat application demonstrating a simple messaging interf
 It's built using Swift and SwiftUI, and incorporates the MVVM architecture pattern along with elements of Clean Architecture. 
 The app allows users to send text messages and receives replies generated **on-device** by Apple's [Foundation Models](https://developer.apple.com/documentation/foundationmodels) framework, with a graceful fallback to canned replies when the model is unavailable.
 
+
+https://github.com/user-attachments/assets/a6041787-c4bb-4b96-b465-2015b167d069
+
+
 ## Features
 
 * **Message Sending:** Users can type a text message and send it.
