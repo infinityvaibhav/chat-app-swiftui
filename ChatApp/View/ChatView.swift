@@ -47,12 +47,15 @@ struct ChatView: View {
     /// A view builder that creates the footer with a text field for message input and a send button.
     ///
     /// The footer includes a TextField bound to the view model's current message text and a Button that triggers sending the message, with loading state handling.
-    @ViewBuilder
     var footer: some View {
         HStack {
             TextField(enterMessage, text: $viewModel.currentMessageText)
-                .padding(.vertical, 8)
-                .textFieldStyle(.roundedBorder)
+                .frame(height: 55)
+                .textFieldStyle(.plain)
+                .padding([.horizontal], 26)
+                .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.gray))
+                .padding([.horizontal], 2)
                 .disabled(viewModel.isLoading)
             
             Button {
@@ -62,12 +65,12 @@ struct ChatView: View {
                     ProgressView()
                         .tint(.white)
                         .padding(12)
-                        .background(Color.green.opacity(0.5).cornerRadius(20))
+                        .background(Color(red: 88 / 255, green: 130 / 255, blue: 255 / 255).opacity(0.5).cornerRadius(20))
                 } else {
                     Image(systemName: "paperplane.fill")
                         .foregroundColor(.white)
                         .padding(12)
-                        .background(Color.green.cornerRadius(20))
+                        .background(Color(red: 88 / 255, green: 130 / 255, blue: 255 / 255).cornerRadius(20))
                 }
             }
             .disabled(viewModel.isLoading)
