@@ -16,7 +16,10 @@ struct Message: Identifiable {
     /// A unique identifier for the message, automatically generated as a UUID.
     let id = UUID()
     /// The textual content of the message.
-    let text: String
+    ///
+    /// Mutable so that a streamed reply can be updated in place as the
+    /// on-device model emits successive content snapshots.
+    var text: String
     /// A boolean indicating whether the message was sent by the user (`true`) or received (`false`).
     let isUser: Bool
 }
